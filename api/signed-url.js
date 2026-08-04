@@ -3,8 +3,8 @@
 // Génère un lien de lecture temporaire (60 secondes) vers un fichier privé du bucket
 // "dossiers-media". Aucun fichier du dossier n'est jamais rendu public directement.
 
-const { supabaseAdmin } = require('./_lib/supabase');
-const { requireAdmin } = require('./_lib/auth');
+const { supabaseAdmin } = require('../lib/supabase');
+const { requireAdmin } = require('../lib/auth');
 
 const BUCKET = 'dossiers-media';
 

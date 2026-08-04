@@ -1,7 +1,7 @@
 // tests/validate.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { validateDossierPayload, validateEmail, passesHoneypot } = require('../api/_lib/validate.js');
+const { validateDossierPayload, validateEmail, passesHoneypot } = require('../lib/validate.js');
 
 test('validateDossierPayload — payload valide accepté', () => {
   const { ok, data } = validateDossierPayload({

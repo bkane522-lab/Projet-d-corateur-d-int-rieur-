@@ -11,7 +11,7 @@
 // query string dans vercel.json si un contrôle plus strict est nécessaire), cela évite un
 // déclenchement trivial par un tiers qui devine l'URL.
 
-const { supabaseAdmin } = require('./_lib/supabase');
+const { supabaseAdmin } = require('../lib/supabase');
 
 const BUCKET = 'dossiers-media';
 const ORPHAN_DELAY_MS = 24 * 60 * 60 * 1000; // 24h de délai avant suppression

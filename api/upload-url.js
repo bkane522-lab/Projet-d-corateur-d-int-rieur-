@@ -12,9 +12,9 @@
 //     Ce réglage bucket est une deuxième barrière, en plus de la validation ci-dessous —
 //     les deux doivent être tenues à jour ensemble si les formats acceptés changent.
 
-const { supabaseAdmin } = require('./_lib/supabase');
-const { checkRateLimit } = require('./_lib/rateLimit');
-const { handlePreflight } = require('./_lib/cors');
+const { supabaseAdmin } = require('../lib/supabase');
+const { checkRateLimit } = require('../lib/rateLimit');
+const { handlePreflight } = require('../lib/cors');
 
 const BUCKET = 'dossiers-media';
 

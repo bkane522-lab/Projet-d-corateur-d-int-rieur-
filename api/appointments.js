@@ -2,10 +2,10 @@
 // POST /api/appointments — le prospect propose ses créneaux de disponibilité.
 // GET  /api/appointments?dossier_id=... — réservé admin (authentification Supabase réelle).
 
-const { supabaseAdmin } = require('./_lib/supabase');
-const { requireAdmin } = require('./_lib/auth');
-const { checkRateLimit } = require('./_lib/rateLimit');
-const { handlePreflight } = require('./_lib/cors');
+const { supabaseAdmin } = require('../lib/supabase');
+const { requireAdmin } = require('../lib/auth');
+const { checkRateLimit } = require('../lib/rateLimit');
+const { handlePreflight } = require('../lib/cors');
 
 module.exports = async (req, res) => {
   if (handlePreflight(req, res)) return;

@@ -4,11 +4,11 @@
 // GET  /api/dossiers?code=...       → statut seul, par code d'accès (client)
 // POST /api/dossiers                → création d'un nouveau dossier (prospect)
 
-const { supabaseAdmin } = require('./_lib/supabase');
-const { requireAdmin } = require('./_lib/auth');
-const { validateDossierPayload, passesHoneypot } = require('./_lib/validate');
-const { validateScanPayload } = require('./_lib/validateScan');
-const { checkRateLimit } = require('./_lib/rateLimit');
+const { supabaseAdmin } = require('../lib/supabase');
+const { requireAdmin } = require('../lib/auth');
+const { validateDossierPayload, passesHoneypot } = require('../lib/validate');
+const { validateScanPayload } = require('../lib/validateScan');
+const { checkRateLimit } = require('../lib/rateLimit');
 
 function generateCodeAcces() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans caractères ambigus (0/O, 1/I)
@@ -17,7 +17,7 @@ function generateCodeAcces() {
   return `ADP-${code}`;
 }
 
-const { handlePreflight } = require('./_lib/cors');
+const { handlePreflight } = require('../lib/cors');
 
 module.exports = async (req, res) => {
   if (handlePreflight(req, res)) return;

@@ -3,9 +3,9 @@
 // Génère un résumé synthétique du besoin. Voir api/_lib/groq.js pour les garde-fous
 // (jamais de dimension inventée, jamais de diagnostic structurel).
 
-const { supabaseAdmin } = require('./_lib/supabase');
-const { requireAdmin } = require('./_lib/auth');
-const { callGroq } = require('./_lib/groq');
+const { supabaseAdmin } = require('../lib/supabase');
+const { requireAdmin } = require('../lib/auth');
+const { callGroq } = require('../lib/groq');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });

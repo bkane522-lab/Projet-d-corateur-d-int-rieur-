@@ -9,9 +9,9 @@
 // Garde-fous identiques à summary.js : jamais de dimension inventée, jamais de
 // diagnostic structurel, jamais de plan présenté comme validé.
 
-const { supabaseAdmin } = require('./_lib/supabase');
-const { requireAdmin } = require('./_lib/auth');
-const { callGroq } = require('./_lib/groq');
+const { supabaseAdmin } = require('../lib/supabase');
+const { requireAdmin } = require('../lib/auth');
+const { callGroq } = require('../lib/groq');
 
 const PROMPTS = {
   questions_rdv: (d) => `À partir de ce dossier (${JSON.stringify(dossierResume(d))}),

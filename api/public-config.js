@@ -4,7 +4,7 @@
 // publiques par conception (c'est la clé service_role qui doit rester secrète, jamais
 // celle-ci). Évite de coder ces valeurs en dur dans le HTML statique.
 
-const { handlePreflight } = require('./_lib/cors');
+const { handlePreflight } = require('../lib/cors');
 
 module.exports = async (req, res) => {
   if (handlePreflight(req, res)) return;

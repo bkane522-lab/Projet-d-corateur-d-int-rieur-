@@ -1,9 +1,9 @@
 // api/status.js
 // PATCH /api/status — réservé à l'espace décoratrice (Supabase Auth vérifiée).
 
-const { supabaseAdmin } = require('./_lib/supabase');
-const { requireAdmin } = require('./_lib/auth');
-const { validateEnum, cleanText } = require('./_lib/validate');
+const { supabaseAdmin } = require('../lib/supabase');
+const { requireAdmin } = require('../lib/auth');
+const { validateEnum, cleanText } = require('../lib/validate');
 
 module.exports = async (req, res) => {
   if (req.method !== 'PATCH') return res.status(405).json({ error: 'Méthode non autorisée' });
