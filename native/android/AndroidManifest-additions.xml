@@ -1,0 +1,23 @@
+<!-- native/android/AndroidManifest-additions.xml
+     À fusionner dans android/app/src/main/AndroidManifest.xml (généré par
+     `npx cap add android`). -->
+
+<!-- Permission caméra, requise par ARCore et par la prise de photo du parcours web -->
+<uses-permission android:name="android.permission.CAMERA" />
+
+<!-- Indique que l'app utilise la réalité augmentée mais reste installable sur les
+     appareils non certifiés ARCore (android:required="false") — le mode bascule alors
+     vers le parcours web de secours, voir js/scan-detect.js. -->
+<uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+
+<!-- Dans la balise <application> : indique que Google Play Services for AR doit être
+     proposé à l'installation si absent, mais n'est pas strictement requis pour installer
+     l'app elle-même. -->
+<meta-data android:name="com.google.ar.core" android:value="optional" />
+
+<!-- Déclaration de l'activité de scan guidé (dans <application>) -->
+<activity
+    android:name="com.atelierdeplan.dossierprojet.arcore.GuidedArCoreActivity"
+    android:exported="false"
+    android:screenOrientation="portrait"
+    android:theme="@style/Theme.AppCompat.NoActionBar" />

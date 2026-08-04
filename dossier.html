@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-brand-title="Passeport de l'espace">Passeport de l'espace — Atelier de Plan</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#173F35">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  .wrap{max-width:680px; margin:0 auto; padding:4rem 6vw 6rem;}
+  .indicative-banner{
+    background:var(--pierre); border-left:3px solid var(--terre); border-radius:2px;
+    padding:1rem 1.2rem; font-size:0.85rem; color:var(--encre-soft); margin-bottom:2rem;
+  }
+  .confidence-row{display:flex; align-items:center; gap:1rem; margin-bottom:2rem;}
+  .confidence-bar{flex:1; height:8px; background:var(--pierre); border-radius:4px; overflow:hidden;}
+  .confidence-fill{height:100%; background:var(--sauge);}
+  .plan-svg{width:100%; background:var(--pierre); border-radius:4px; margin-bottom:1.5rem;}
+  .recap-block{margin-bottom:2rem;}
+  .recap-block h3{font-size:1rem; margin-bottom:0.9rem; display:flex; justify-content:space-between; align-items:center;}
+  .edit-link{font-size:0.78rem; color:var(--terre); cursor:pointer; text-decoration:underline; font-family:'Inter',sans-serif; font-weight:400;}
+  .photo-row{display:flex; gap:0.6rem; overflow-x:auto; padding-bottom:0.4rem;}
+  .photo-item{flex-shrink:0; width:110px;}
+  .photo-item img{width:110px; height:110px; object-fit:cover; border-radius:3px; border:1px solid var(--ligne);}
+  .photo-item .tag{font-size:0.72rem; color:var(--encre-soft); margin-top:0.3rem;}
+  .mesure-line, .info-line{display:flex; justify-content:space-between; font-size:0.9rem; padding:0.5rem 0; border-bottom:1px solid var(--ligne); gap:1rem;}
+  .info-line span:first-child{color:var(--encre-soft);}
+  .info-line span:last-child{text-align:right; font-weight:500;}
+  #status-msg{margin-top:1rem; font-size:0.9rem; color:var(--encre-soft);}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="brand" data-brand="nomCourt">Atelier de Plan</div>
+</nav>
+
+<div class="wrap">
+  <div class="spine">
+    <div class="spine-step done">01 Espace</div>
+    <div class="spine-step done">02 Questionnaire</div>
+    <div class="spine-step active">03 Passeport</div>
+    <div class="spine-step">04 RDV</div>
+  </div>
+
+  <h1 style="font-size:1.8rem;">Le passeport de votre espace</h1>
+  <p style="color:var(--encre-soft); margin-top:0.6rem;">Un aperçu structuré de votre pièce, avant transmission à la décoratrice.</p>
+
+  <div class="indicative-banner">
+    Toutes les dimensions et éléments présentés ici sont <strong>indicatifs</strong>. Ils
+    seront vérifiés et validés par la décoratrice avant toute décision technique.
+  </div>
+
+  <div class="recap-block">
+    <h3>Niveau de confiance du relevé</h3>
+    <div class="confidence-row">
+      <div class="confidence-bar"><div class="confidence-fill" id="confidence-fill" style="width:0%;"></div></div>
+      <span id="confidence-label" style="font-size:0.85rem; color:var(--encre-soft);">—</span>
+    </div>
+  </div>
+
+  <div class="recap-block" id="plan-block" style="display:none;">
+    <h3>Plan 2D simplifié <span style="font-size:0.75rem; font-weight:400; color:var(--encre-soft);">(indicatif)</span></h3>
+    <svg class="plan-svg" id="plan-svg" viewBox="0 0 400 300"></svg>
+  </div>
+
+  <div class="recap-block">
+    <h3>Photos <span class="edit-link" id="edit-photos">Modifier</span></h3>
+    <div class="photo-row" id="photo-row"></div>
+  </div>
+
+  <div class="recap-block" id="openings-block" style="display:none;">
+    <h3>Ouvertures détectées</h3>
+    <div id="openings-list"></div>
+  </div>
+
+  <div class="recap-block">
+    <h3>Mesures à confirmer <span class="edit-link" id="edit-mesures">Modifier</span></h3>
+    <div id="mesures-recap"></div>
+  </div>
+
+  <div class="recap-block">
+    <h3>Projet <span class="edit-link" onclick="location.href='questionnaire.html'">Modifier</span></h3>
+    <div id="reponses-recap"></div>
+  </div>
+
+  <div class="recap-block">
+    <h3>Vos coordonnées</h3>
+    <div class="field"><label class="field-label">Nom</label><input type="text" id="nom"></div>
+    <div class="field"><label class="field-label">Email</label><input type="email" id="email"></div>
+    <div class="field"><label class="field-label">Téléphone</label><input type="tel" id="telephone"></div>
+  </div>
+
+  <!-- Champs anti-spam : invisibles pour un humain, remplis uniquement par des bots -->
+  <input type="text" id="website_confirmation" name="website_confirmation" style="position:absolute; left:-9999px;" tabindex="-1" autocomplete="off">
+
+  <button class="btn btn-primary btn-full" id="btn-envoyer">Envoyer à la décoratrice</button>
+  <p id="status-msg"></p>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/brand.js"></script>
+<script src="js/app.js"></script>
+<script>
+  const dossier = DossierState.get();
+  const formRenderedAt = Date.now();
+
+  // ---------- Photos ----------
+  const photoRow = document.getElementById('photo-row');
+  const photos = dossier.photos || (dossier.scanResult && dossier.scanResult.photos) || [];
+  if (photos.length === 0) {
+    photoRow.innerHTML = '<p style="font-size:0.85rem; color:var(--encre-soft);">Aucune photo ajoutée.</p>';
+  } else {
+    photos.forEach(p => {
+      const item = document.createElement('div');
+      item.className = 'photo-item';
+      const img = document.createElement('img');
+      // Les photos du parcours manuel sont désormais dans Supabase Storage (privé) :
+      // on affiche uniquement une pastille tant qu'on n'a pas de lien signé à ce stade
+      // (le lien signé n'est utile que côté admin — ici on montre la légende).
+      img.alt = p.legende || '';
+      img.src = p.previewUrl || ''; // previewUrl existe seulement juste après capture (objet local)
+      if (!img.src) {
+        item.innerHTML = `<div style="width:110px;height:110px;background:var(--pierre);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--encre-soft);text-align:center;padding:0.4rem;">${escapeHtml(p.legende || 'Photo envoyée')}</div>`;
+      } else {
+        item.appendChild(img);
+      }
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = `${p.legende || ''} — ${p.statut_annotation || 'à vérifier'}`;
+      item.appendChild(tag);
+      photoRow.appendChild(item);
+    });
+  }
+
+  // ---------- Ouvertures (mode natif uniquement) ----------
+  const openings = (dossier.scanResult && dossier.scanResult.openings) || [];
+  if (openings.length > 0) {
+    document.getElementById('openings-block').style.display = 'block';
+    const list = document.getElementById('openings-list');
+    openings.forEach(o => {
+      const line = document.createElement('div');
+      line.className = 'info-line';
+      line.innerHTML = `<span>${escapeHtml(o.type || 'Ouverture')}</span><span>${escapeHtml(o.largeur_cm || '?')} × ${escapeHtml(o.hauteur_cm || '?')} cm</span>`;
+      list.appendChild(line);
+    });
+  }
+
+  // ---------- Mesures ----------
+  const mesuresRecap = document.getElementById('mesures-recap');
+  const mesures = dossier.mesures || [];
+  if (dossier.reference) {
+    const line = document.createElement('div');
+    line.className = 'mesure-line';
+    line.innerHTML = `<span>${escapeHtml(dossier.reference.libelle)} (référence)</span><span>${escapeHtml(dossier.reference.valeur_cm)} cm</span>`;
+    mesuresRecap.appendChild(line);
+  }
+  if (mesures.length === 0 && !dossier.reference) {
+    mesuresRecap.innerHTML = '<p style="font-size:0.85rem; color:var(--encre-soft);">Aucune mesure renseignée.</p>';
+  } else {
+    mesures.forEach(m => {
+      const line = document.createElement('div');
+      line.className = 'mesure-line';
+      line.innerHTML = `<span>${escapeHtml(m.libelle)}</span><span>${escapeHtml(m.valeur_cm)} cm</span>`;
+      mesuresRecap.appendChild(line);
+    });
+  }
+
+  // ---------- Réponses questionnaire ----------
+  const reponsesRecap = document.getElementById('reponses-recap');
+  const labels = {
+    type_logement: 'Type de logement', piece_concernee: 'Pièce concernée', ville: 'Ville',
+    surface_m2: 'Surface', probleme_principal: 'Problème principal',
+    elements_a_conserver: 'Éléments à conserver', style_recherche: 'Style recherché',
+    budget: 'Budget', calendrier: 'Calendrier'
+  };
+  const reponses = dossier.reponses || {};
+  Object.entries(labels).forEach(([key, label]) => {
+    const val = reponses[key];
+    if (!val) return;
+    const line = document.createElement('div');
+    line.className = 'info-line';
+    line.innerHTML = `<span>${escapeHtml(label)}</span><span>${escapeHtml(val)}</span>`;
+    reponsesRecap.appendChild(line);
+  });
+
+  // ---------- Niveau de confiance ----------
+  let confidence = dossier.scanResult?.confidence_score;
+  if (confidence === undefined || confidence === null) {
+    // Mode manuel : estimation simple à partir de la part de photos nettes.
+    const withSharpness = photos.filter(p => p.nettete_ok !== undefined);
+    confidence = withSharpness.length
+      ? Math.round((withSharpness.filter(p => p.nettete_ok).length / withSharpness.length) * 70) // plafonné à 70% en manuel
+      : 40;
+  }
+  document.getElementById('confidence-fill').style.width = `${confidence}%`;
+  document.getElementById('confidence-label').textContent = `${confidence}% (indicatif)`;
+
+  // ---------- Plan 2D simplifié (uniquement si dimensions structurées disponibles) ----------
+  const dims = dossier.scanResult?.dimensions;
+  if (dims && dims.largeur_cm && dims.longueur_cm) {
+    document.getElementById('plan-block').style.display = 'block';
+    const svg = document.getElementById('plan-svg');
+    const scale = 300 / Math.max(dims.largeur_cm, dims.longueur_cm);
+    const w = dims.largeur_cm * scale, l = dims.longueur_cm * scale;
+    svg.innerHTML = `<rect x="20" y="20" width="${w}" height="${l}" fill="none" stroke="#B99545" stroke-width="2"/>`;
+  }
+
+  // ---------- Liens Modifier ----------
+  const isManual = (dossier.scan_provider || 'manuel') === 'manuel';
+  document.getElementById('edit-photos').onclick = () => location.href = isManual ? 'photos-mesures.html' : 'scanner.html';
+  document.getElementById('edit-mesures').onclick = () => location.href = isManual ? 'photos-mesures.html' : 'scanner.html';
+
+  // ---------- Envoi ----------
+  document.getElementById('btn-envoyer').addEventListener('click', async () => {
+    const statusMsg = document.getElementById('status-msg');
+    const nom = document.getElementById('nom').value;
+    const email = document.getElementById('email').value;
+    const telephone = document.getElementById('telephone').value;
+
+    if (!nom || !email) {
+      statusMsg.textContent = 'Merci de renseigner au moins votre nom et votre email.';
+      return;
+    }
+
+    statusMsg.textContent = 'Envoi en cours…';
+
+    const scanResult = dossier.scanResult || {};
+    const payload = {
+      ...reponses,
+      nom_prospect: nom,
+      email_prospect: email,
+      telephone_prospect: telephone,
+      source_scan: dossier.scan_provider || 'manuel',
+      scan_provider: dossier.scan_provider || 'manuel',
+      scan_version: scanResult.scan_version || '1.0',
+      device_capabilities: dossier.device_capabilities || null,
+      room_name: scanResult.room_name || reponses.piece_concernee || null,
+      walls: scanResult.walls || [],
+      openings: scanResult.openings || [],
+      dimensions: scanResult.dimensions || (dossier.reference ? { reference: dossier.reference } : {}),
+      objects: scanResult.objects || [],
+      annotations: photos.map(p => ({ mur_id: p.mur_id, statut: p.statut_annotation })),
+      confidence_score: confidence,
+      manual_corrections: [],
+      export_files: scanResult.export_files || [],
+      mesures,
+      photos,
+      documents: dossier.documents || [],
+      // Anti-spam
+      website_confirmation: document.getElementById('website_confirmation').value,
+      form_rendered_at: formRenderedAt
+    };
+
+    try {
+      const result = await apiPost('/api/dossiers', payload);
+      localStorage.setItem('code_acces_dossier', result.code_acces);
+      DossierState.clear();
+      window.location.href = `rdv.html?code=${result.code_acces}`;
+    } catch (err) {
+      statusMsg.textContent = err.message || "Une erreur est survenue lors de l'envoi. Merci de réessayer.";
+    }
+  });
+</script>
+
+</body>
+</html>

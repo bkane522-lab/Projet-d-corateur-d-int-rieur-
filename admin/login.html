@@ -1,1 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace décoratrice — Connexion</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  body{display:flex; align-items:center; justify-content:center; min-height:100vh;}
+  .login-card{max-width:360px; width:100%; padding:0 6vw;}
+</style>
+</head>
+<body>
 
+<div class="login-card">
+  <p class="label">Espace privé</p>
+  <h1 style="margin:0.6rem 0 1.6rem; font-size:1.6rem;">Connexion décoratrice</h1>
+  <form id="login-form">
+    <div class="field">
+      <label class="field-label">Email</label>
+      <input type="email" id="email" required autocomplete="username">
+    </div>
+    <div class="field">
+      <label class="field-label">Mot de passe</label>
+      <input type="password" id="password" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+  </form>
+  <p id="error-msg" style="margin-top:1rem; font-size:0.85rem; color:var(--terre);"></p>
+</div>
+
+<script src="js/session.js"></script>
+<script>
+  // Si une session valide existe déjà (restaurée automatiquement), on saute la connexion.
+  (async () => {
+    const client = await getAdminClient();
+    const { data: { session } } = await client.auth.getSession();
+    if (session) window.location.href = 'dashboard.html';
+  })();
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorMsg = document.getElementById('error-msg');
+    errorMsg.textContent = '';
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    const client = await getAdminClient();
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+
+    if (error || !data.session) {
+      errorMsg.textContent = 'Identifiants incorrects.';
+      return;
+    }
+
+    // La session est automatiquement persistée par supabase-js (persistSession: true) —
+    // plus besoin de stocker manuellement un token.
+    window.location.href = 'dashboard.html';
+  });
+</script>
+
+</body>
+</html>

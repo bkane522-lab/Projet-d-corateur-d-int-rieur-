@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-brand-title="Scanner mon espace">Scanner mon espace — Atelier de Plan</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#173F35">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  .wrap{max-width:640px; margin:0 auto; padding:5rem 6vw 4rem;}
+  .mode-card{
+    background:var(--blanc); border:1px solid var(--ligne); border-radius:6px;
+    padding:1.6rem; margin:1.5rem 0 2rem;
+  }
+  .mode-badge{
+    display:inline-block; font-family:'Space Mono',monospace; font-size:0.7rem;
+    text-transform:uppercase; letter-spacing:0.06em; padding:0.3rem 0.7rem;
+    border-radius:12px; margin-bottom:0.8rem;
+  }
+  .mode-badge.ios_lidar{background:rgba(124,138,110,0.18); color:var(--sauge);}
+  .mode-badge.android_arcore{background:rgba(124,138,110,0.18); color:var(--sauge);}
+  .mode-badge.web_fallback{background:rgba(181,98,46,0.15); color:var(--terre);}
+  .actions{display:flex; flex-direction:column; gap:0.9rem; margin-top:1.5rem;}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="brand" data-brand="nomCourt">Atelier de Plan</div>
+</nav>
+
+<div class="wrap">
+  <p class="label">Étape 1 — Documenter votre espace</p>
+  <h1 style="margin-top:0.6rem;">Scanner mon espace</h1>
+
+  <div class="mode-card">
+    <span class="mode-badge" id="mode-badge">Détection…</span>
+    <p id="mode-message" style="color:var(--encre-soft); font-size:0.95rem;">Vérification des capacités de votre appareil…</p>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary btn-full" id="btn-start" disabled>Démarrer</button>
+    <a href="photos-mesures.html" class="btn btn-outline btn-full" id="btn-web-fallback" style="display:none;">Utiliser le parcours photos guidées</a>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/brand.js"></script>
+<script src="js/app.js"></script>
+<script src="js/native-plugins.js"></script>
+<script src="js/scan-detect.js"></script>
+<script>
+  (async () => {
+    const caps = await detectScanMode();
+    const badge = document.getElementById('mode-badge');
+    const message = document.getElementById('mode-message');
+    const btnStart = document.getElementById('btn-start');
+    const btnWeb = document.getElementById('btn-web-fallback');
+
+    badge.className = 'mode-badge ' + caps.mode;
+    badge.textContent = {
+      ios_lidar: 'Mode LiDAR (iOS)',
+      android_arcore: 'Mode ARCore (Android)',
+      web_fallback: 'Parcours photos & mesures'
+    }[caps.mode];
+
+    message.textContent = getScanModeMessage(caps);
+
+    if (caps.mode === 'web_fallback') {
+      btnStart.style.display = 'none';
+      btnWeb.style.display = 'inline-flex';
+    } else {
+      btnStart.disabled = false;
+      btnStart.textContent = caps.mode === 'ios_lidar' ? 'Démarrer le scan LiDAR' : 'Démarrer le scan assisté ARCore';
+      btnStart.addEventListener('click', async () => {
+        DossierState.save({ scan_provider: caps.mode, device_capabilities: caps });
+        try {
+          const plugin = caps.mode === 'ios_lidar'
+            ? window.NativePlugins && window.NativePlugins.RoomPlanPlugin
+            : window.NativePlugins && window.NativePlugins.ARCorePlugin;
+
+          if (!plugin) {
+            // Cas plugin indisponible : message clair, bascule immédiate vers le
+            // parcours web plutôt que de laisser un bouton qui ne fait rien.
+            message.textContent = "Le module de scan natif n'est pas disponible sur cette installation de l'app. Utilisez le parcours photos guidées ci-dessous.";
+            btnWeb.style.display = 'inline-flex';
+            return;
+          }
+
+          const scanResult = await plugin.startScan();
+          // Le plugin natif retourne déjà l'objet normalisé (voir docs/modele-donnees.md
+          // et native/README.md pour le contrat exact walls/openings/dimensions/…).
+
+          // Cas iOS : si un export USDZ a réussi côté natif, le fichier existe en local
+          // sur l'appareil (export_local_path) mais n'est pas encore dans notre Storage —
+          // on le lit via @capacitor/filesystem et on l'upload comme les autres documents.
+          const filesystemPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem;
+          if (scanResult.export_local_path && filesystemPlugin) {
+            try {
+              const fileData = await filesystemPlugin.readFile({ path: scanResult.export_local_path });
+              const byteChars = atob(fileData.data);
+              const byteNumbers = new Array(byteChars.length);
+              for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+              const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'model/vnd.usdz+zip' });
+              const usdzFile = new File([blob], 'scan-espace.usdz', { type: 'model/vnd.usdz+zip' });
+              const storagePath = await uploadFileToStorage(usdzFile, 'document');
+              scanResult.export_files = [...(scanResult.export_files || []), { storage_path: storagePath, type: 'usdz' }];
+            } catch (uploadErr) {
+              console.warn("Échec de l'upload du fichier 3D (non bloquant) :", uploadErr);
+            }
+            delete scanResult.export_local_path; // chemin local, jamais envoyé tel quel au serveur
+          }
+
+          DossierState.save({ scanResult });
+          window.location.href = 'dossier.html';
+        } catch (err) {
+          message.textContent = "Le scan natif a échoué ou a été annulé. Vous pouvez utiliser le parcours photos guidées à la place.";
+          btnWeb.style.display = 'inline-flex';
+        }
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>

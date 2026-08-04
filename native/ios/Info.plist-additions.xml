@@ -1,0 +1,15 @@
+<!-- native/ios/Info.plist-additions.xml
+     À fusionner dans ios/App/App/Info.plist (généré par `npx cap add ios`) — ces clés
+     n'existent pas par défaut et sont obligatoires pour RoomPlan/ARKit (caméra + capteurs
+     de mouvement) et pour la prise de photo dans le parcours web de secours. -->
+
+<key>NSCameraUsageDescription</key>
+<string>L'accès à la caméra est nécessaire pour scanner votre pièce ou prendre des photos de votre espace.</string>
+
+<key>NSMotionUsageDescription</key>
+<string>L'accès aux capteurs de mouvement améliore la précision du scan de votre pièce.</string>
+
+<!-- RoomPlan nécessite iOS 16+ et un appareil avec LiDAR ; ARKit est inclus dans le SDK
+     iOS, aucune clé "UIRequiredDeviceCapabilities" supplémentaire n'est requise pour que
+     l'app s'installe sur des appareils sans LiDAR (le mode bascule alors vers le
+     fallback web, voir js/scan-detect.js). -->
