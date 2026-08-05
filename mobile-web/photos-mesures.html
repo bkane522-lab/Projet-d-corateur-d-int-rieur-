@@ -39,7 +39,7 @@
 <body>
 
 <nav class="top">
-  <div class="brand" data-brand="nomCourt">Atelier de Plan</div>
+  <a href="index.html" class="brand" data-brand="nomCourt" style="text-decoration:none; cursor:pointer;">Atelier de Plan</a>
 </nav>
 
 <div class="wrap">
@@ -133,9 +133,59 @@
     const status = card.querySelector('.upload-status');
     const chips = card.querySelectorAll('.annotation-row .chip');
 
+    // pendingFile : dernier fichier compressé prêt à (re)envoyer, utilisé par le bouton
+    // Réessayer sans repasser par le sélecteur de fichier.
+    let pendingFile = null;
+
+    function setState(state) {
+      card.dataset.uploadState = state;
+      updateContinueState();
+    }
+
+    function renderRetryButton(show) {
+      let btn = card.querySelector('.wall-retry-btn');
+      if (show) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'wall-retry-btn';
+          btn.textContent = 'Réessayer';
+          btn.style.cssText = 'margin-top:0.4rem; font-size:0.78rem; color:var(--terre); background:none; border:1px solid var(--terre); border-radius:3px; padding:0.35rem 0.7rem; cursor:pointer;';
+          btn.addEventListener('click', () => { if (pendingFile) attemptUpload(pendingFile); });
+          status.insertAdjacentElement('afterend', btn);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    }
+
+    async function attemptUpload(compressed) {
+      pendingFile = compressed;
+      setState('uploading');
+      status.textContent = 'Envoi en cours…';
+      renderRetryButton(false);
+      try {
+        const path = await uploadFileToStorage(compressed, 'photo');
+        card.dataset.storagePath = path;
+        status.textContent = 'Photo envoyée.';
+        setState('uploaded');
+        pendingFile = null;
+      } catch (err) {
+        // Message réel affiché (au lieu du texte générique précédent) pour permettre
+        // un vrai diagnostic si le problème se reproduit.
+        status.textContent = `Échec de l'envoi : ${err.message || 'erreur inconnue'}.`;
+        card.dataset.storagePath = '';
+        setState('failed');
+        renderRetryButton(true);
+      }
+    }
+
     captureBtn.addEventListener('click', () => input.click());
 
-    card.querySelector('[data-action="remove"]').addEventListener('click', () => card.remove());
+    card.querySelector('[data-action="remove"]').addEventListener('click', () => {
+      card.remove();
+      updateContinueState();
+    });
 
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
@@ -149,8 +199,11 @@
       preview.innerHTML = `<span style="font-size:0.78rem; color:var(--encre-soft); padding:0 1rem; text-align:center;">Photo déjà envoyée — reprendre une photo la remplacera</span>`;
       status.textContent = 'Déjà envoyée.';
       card.dataset.storagePath = existing.storage_path;
+      card.dataset.uploadState = 'uploaded';
       const chip = [...chips].find(c => c.dataset.value === existing.statut_annotation);
       if (chip) { chip.classList.add('selected'); card.dataset.annotation = existing.statut_annotation; }
+    } else {
+      card.dataset.uploadState = 'local';
     }
 
     input.addEventListener('change', async (e) => {
@@ -192,18 +245,23 @@
         }
         card.dataset.nettete = nettete_ok;
 
-        status.textContent = 'Envoi en cours…';
-        try {
-          const path = await uploadFileToStorage(compressed, 'photo');
-          card.dataset.storagePath = path;
-          status.textContent = 'Photo envoyée.';
-        } catch (err) {
-          status.textContent = "Échec de l'envoi — vérifiez votre connexion et réessayez.";
-          card.dataset.storagePath = '';
-        }
+        await attemptUpload(compressed);
       };
       img.src = localUrl;
     });
+  }
+
+  // Bloque "Continuer" tant qu'une photo est en cours d'envoi ou en échec, avec un
+  // message explicite (voir evaluatePhotosGate dans js/app.js, testée unitairement).
+  function updateContinueState() {
+    const states = [...wallsContainer.querySelectorAll('.wall-card')].map(c => c.dataset.uploadState || 'local');
+    const gate = evaluatePhotosGate(states);
+    const btn = document.getElementById('btn-continue');
+    const globalStatus = document.getElementById('global-status');
+    btn.disabled = gate.disabled;
+    btn.style.opacity = gate.disabled ? '0.5' : '1';
+    btn.style.cursor = gate.disabled ? 'not-allowed' : 'pointer';
+    globalStatus.textContent = gate.reason;
   }
 
   document.getElementById('add-wall').addEventListener('click', () => {
@@ -212,6 +270,7 @@
       return;
     }
     createWallCard();
+    updateContinueState();
   });
 
   // Initialisation : reprise des murs existants ou 4 murs par défaut
@@ -220,6 +279,7 @@
   } else {
     for (let i = 0; i < 4; i++) createWallCard();
   }
+  updateContinueState();
 
   // Mesures manuelles
   const mesuresList = document.getElementById('mesures-list');
