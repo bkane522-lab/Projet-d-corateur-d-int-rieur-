@@ -35,7 +35,7 @@
 
   .projects{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.5rem;}
   .project{background:var(--blanc); border:1px solid var(--ligne);}
-  .project .swatch{aspect-ratio:4/3; background:linear-gradient(135deg, var(--pierre), var(--ivoire));}
+  .project .swatch{aspect-ratio:4/3; background:linear-gradient(135deg, var(--pierre), var(--ivoire)); display:block; width:100%; object-fit:cover;}
   .project .body{padding:1.4rem;}
   .project h3{font-size:1.1rem;}
   .project p{font-size:0.88rem; color:var(--encre-soft); margin-top:0.4rem;}
@@ -52,7 +52,7 @@
 <body>
 
 <nav class="top">
-  <div class="brand" data-brand="nomCourt">Atelier de Plan</div>
+  <a href="index.html" class="brand" data-brand="nomCourt" style="text-decoration:none; cursor:pointer;">Atelier de Plan</a>
   <a href="scanner.html" class="btn btn-outline" style="padding:0.6rem 1.1rem; font-size:0.85rem;">Démarrer mon dossier</a>
 </nav>
 
@@ -107,21 +107,21 @@
   </div>
   <div class="projects">
     <div class="project">
-      <div class="swatch"></div>
+      <img class="swatch" src="assets/appartement-croix-rousse.jpg" alt="Salon rénové, appartement Croix-Rousse" loading="lazy">
       <div class="body">
         <h3>Appartement Croix-Rousse</h3>
         <p>Réagencement complet d'un T3 — Lyon, 62 m²</p>
       </div>
     </div>
     <div class="project">
-      <div class="swatch"></div>
+      <img class="swatch" src="assets/maison-de-famille.jpg" alt="Suite parentale, maison de famille" loading="lazy">
       <div class="body">
         <h3>Maison de famille</h3>
         <p>Extension bois et suite parentale — 140 m²</p>
       </div>
     </div>
     <div class="project">
-      <div class="swatch"></div>
+      <img class="swatch" src="assets/studio-optimise.jpg" alt="Studio optimisé, mobilier sur-mesure" loading="lazy">
       <div class="body">
         <h3>Studio optimisé</h3>
         <p>Mobilier sur-mesure et lumière naturelle — 28 m²</p>
