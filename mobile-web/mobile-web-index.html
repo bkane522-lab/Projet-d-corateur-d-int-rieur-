@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-brand-title="Décoration d'intérieur">Décoration d'intérieur — Atelier de Plan</title>
+<meta name="description" content="Décoration d'intérieur sur-mesure. Documentez votre espace, décrivez votre projet, recevez un accompagnement personnalisé.">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#173F35">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  .hero{
+    padding:8rem 6vw 6rem;
+    display:grid; grid-template-columns:1.1fr 0.9fr; gap:3rem; align-items:center;
+  }
+  @media(max-width:860px){ .hero{grid-template-columns:1fr; padding:5rem 6vw 3rem;} }
+  .hero h1{font-size:clamp(2.4rem, 5vw, 4.2rem); line-height:1.05; max-width:14ch;}
+  .hero p.lead{margin-top:1.4rem; max-width:42ch; color:var(--encre-soft); font-size:1.05rem;}
+  .hero .actions{display:flex; gap:1rem; margin-top:2.2rem; flex-wrap:wrap;}
+  .hero-visual{
+    aspect-ratio:4/5; background:var(--pierre); border:1px solid var(--ligne);
+    display:flex; align-items:flex-end; padding:1.6rem;
+  }
+  .hero-visual .tag{font-family:'Space Mono',monospace; font-size:0.72rem; color:var(--encre-soft);}
+
+  section{padding:5rem 6vw;}
+  .section-head{margin-bottom:2.8rem;}
+  .section-head h2{font-size:clamp(1.7rem,3vw,2.3rem);}
+
+  .method-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:2.4rem;}
+  .method-step{border-top:1px solid var(--ligne); padding-top:1.2rem;}
+  .method-step h3{font-size:1.1rem; margin:0.5rem 0;}
+  .method-step p{font-size:0.92rem; color:var(--encre-soft);}
+
+  .projects{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.5rem;}
+  .project{background:var(--blanc); border:1px solid var(--ligne);}
+  .project .swatch{aspect-ratio:4/3; background:linear-gradient(135deg, var(--pierre), var(--ivoire)); display:block; width:100%; object-fit:cover;}
+  .project .body{padding:1.4rem;}
+  .project h3{font-size:1.1rem;}
+  .project p{font-size:0.88rem; color:var(--encre-soft); margin-top:0.4rem;}
+
+  .cta-band{
+    background:var(--encre); color:var(--ivoire); text-align:center;
+    padding:5rem 6vw;
+  }
+  .cta-band h2{color:var(--ivoire); font-size:clamp(1.8rem,3.4vw,2.8rem);}
+  .cta-band p{color:rgba(247,243,236,0.7); max-width:42ch; margin:1rem auto 2rem;}
+  .cta-band .btn-primary{background:var(--ivoire); color:var(--encre); border-color:var(--ivoire);}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <a href="index.html" class="brand" data-brand="nomCourt" style="text-decoration:none; cursor:pointer;">Atelier de Plan</a>
+  <a href="scanner.html" class="btn btn-outline" style="padding:0.6rem 1.1rem; font-size:0.85rem;">Démarrer mon dossier</a>
+</nav>
+
+<section class="hero">
+  <div>
+    <p class="label">Décoration d'intérieur</p>
+    <h1>Votre projet commence par un dossier bien construit.</h1>
+    <p class="lead">Documentez votre espace en quelques minutes — photos, mesures, envies — et transmettez-moi un dossier clair. Je l'étudie personnellement et je reviens vers vous avec une proposition adaptée.</p>
+    <div class="actions">
+      <a href="scanner.html" class="btn btn-primary">Scanner mon espace</a>
+      <a href="#realisations" class="btn btn-outline">Voir des projets</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <img data-brand="logo" src="assets/brand/logo-transparent.png" alt="Logo de l’agence" style="width:min(82%,420px);margin:auto;object-fit:contain;">
+  </div>
+</section>
+
+<section id="methode">
+  <div class="section-head">
+    <p class="label">Méthode</p>
+    <h2>Comment se déroule un accompagnement</h2>
+  </div>
+  <div class="method-grid">
+    <div class="method-step">
+      <p class="label">01</p>
+      <h3>Votre dossier</h3>
+      <p>Vous documentez votre espace et votre besoin depuis votre téléphone, à votre rythme.</p>
+    </div>
+    <div class="method-step">
+      <p class="label">02</p>
+      <h3>Étude personnalisée</h3>
+      <p>J'analyse votre dossier et prépare les premières pistes avant notre échange.</p>
+    </div>
+    <div class="method-step">
+      <p class="label">03</p>
+      <h3>Rendez-vous</h3>
+      <p>Nous discutons de vos envies, de vos contraintes et de votre budget.</p>
+    </div>
+    <div class="method-step">
+      <p class="label">04</p>
+      <h3>Proposition & suivi</h3>
+      <p>Vous recevez une proposition, et suivez l'avancement directement depuis votre espace.</p>
+    </div>
+  </div>
+</section>
+
+<section id="realisations">
+  <div class="section-head">
+    <p class="label">Réalisations</p>
+    <h2>Quelques projets récents</h2>
+  </div>
+  <div class="projects">
+    <div class="project">
+      <img class="swatch" src="assets/realisations/appartement-croix-rousse.jpg" alt="Salon rénové, appartement Croix-Rousse" loading="lazy">
+      <div class="body">
+        <h3>Appartement Croix-Rousse</h3>
+        <p>Réagencement complet d'un T3 — Lyon, 62 m²</p>
+      </div>
+    </div>
+    <div class="project">
+      <img class="swatch" src="assets/realisations/maison-de-famille.jpg" alt="Suite parentale, maison de famille" loading="lazy">
+      <div class="body">
+        <h3>Maison de famille</h3>
+        <p>Extension bois et suite parentale — 140 m²</p>
+      </div>
+    </div>
+    <div class="project">
+      <img class="swatch" src="assets/realisations/studio-optimise.jpg" alt="Studio optimisé, mobilier sur-mesure" loading="lazy">
+      <div class="body">
+        <h3>Studio optimisé</h3>
+        <p>Mobilier sur-mesure et lumière naturelle — 28 m²</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="cta-band">
+  <h2>Prêt·e à démarrer ?</h2>
+  <p>Le dossier prend une dizaine de minutes à constituer. Vous pourrez toujours corriger vos réponses avant l'envoi.</p>
+  <a href="scanner.html" class="btn btn-primary">Scanner mon espace</a>
+</div>
+
+<footer class="simple" data-brand-line="Décoration d'intérieur">Atelier de Plan — Décoration d'intérieur</footer>
+
+<script src="js/config.js"></script>
+<script src="js/brand.js"></script>
+</body>
+</html>
