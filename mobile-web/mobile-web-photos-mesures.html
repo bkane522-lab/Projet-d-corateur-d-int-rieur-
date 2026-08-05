@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-brand-title="Photos & mesures">Photos & mesures — Atelier de Plan</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#173F35">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  .wrap{max-width:640px; margin:0 auto; padding:4rem 6vw 6rem;}
+  .disclaimer{
+    background:var(--pierre); border-left:3px solid var(--terre); border-radius:2px;
+    padding:1rem 1.2rem; font-size:0.85rem; color:var(--encre-soft); margin-bottom:2rem;
+  }
+  .ref-card{background:var(--blanc); border:1px solid var(--ligne); border-radius:4px; padding:1.4rem; margin-bottom:2.2rem;}
+  .wall-card{
+    background:var(--blanc); border:1px solid var(--ligne); border-radius:4px;
+    padding:1.2rem; margin-bottom:1rem;
+  }
+  .wall-card .head{display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;}
+  .wall-card .head h4{font-size:0.95rem;}
+  .wall-photo-preview{width:100%; aspect-ratio:4/3; border-radius:3px; background:var(--pierre); overflow:hidden; margin-bottom:0.8rem; display:flex; align-items:center; justify-content:center;}
+  .wall-photo-preview img{width:100%; height:100%; object-fit:cover;}
+  .sharpness-warning{font-size:0.8rem; color:var(--terre); margin-top:0.4rem;}
+  .annotation-row{display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.8rem;}
+  .annotation-row .chip{font-size:0.78rem; padding:0.45rem 0.8rem;}
+  .upload-status{font-size:0.78rem; color:var(--encre-soft); margin-top:0.5rem;}
+  #add-wall{font-size:0.85rem; color:var(--terre); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; margin-bottom:2rem;}
+
+  .mesures-list{display:flex; flex-direction:column; gap:1rem; margin-bottom:2rem;}
+  .mesure-row{display:grid; grid-template-columns:1.4fr 0.8fr auto; gap:0.6rem; align-items:end;}
+  .mesure-row button{background:none; border:1px solid var(--ligne); border-radius:3px; height:44px; cursor:pointer; color:var(--encre-soft);}
+  #add-mesure{font-size:0.85rem; color:var(--terre); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0;}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="brand" data-brand="nomCourt">Atelier de Plan</div>
+</nav>
+
+<div class="wrap">
+  <p class="label">Étape 1 — Parcours photos et mesures</p>
+  <h1 style="margin-top:0.6rem; font-size:1.8rem;">Documenter votre pièce</h1>
+
+  <div class="disclaimer">
+    Ce parcours ne réalise pas de scan 3D : vous prenez des photos et saisissez des mesures
+    au mètre. C'est suffisant pour démarrer votre dossier — la décoratrice affine ensuite tout
+    ce qui doit l'être.
+  </div>
+
+  <p class="label">Mesure de référence <span style="color:var(--terre);">(obligatoire)</span></p>
+  <div class="ref-card">
+    <p style="font-size:0.85rem; color:var(--encre-soft); margin-bottom:0.8rem;">
+      Une longueur connue (ex : largeur d'une porte, longueur d'un meuble) permet de mieux
+      interpréter vos photos.
+    </p>
+    <div class="row-2" style="display:grid; grid-template-columns:1.4fr 0.8fr; gap:0.8rem;">
+      <div><label class="field-label">Élément de référence</label><input type="text" id="ref-libelle" placeholder="Largeur porte d'entrée"></div>
+      <div><label class="field-label">cm</label><input type="number" id="ref-valeur" placeholder="80"></div>
+    </div>
+  </div>
+
+  <p class="label">Murs photographiés</p>
+  <div id="walls-container" style="margin-top:1rem;"></div>
+  <button id="add-wall" type="button">+ Ajouter un mur</button>
+
+  <p class="label">Mesures manuelles complémentaires</p>
+  <div class="mesures-list" id="mesures-list" style="margin-top:1rem;"></div>
+  <button id="add-mesure" type="button">+ Ajouter une mesure</button>
+
+  <div style="margin-top:2.5rem;">
+    <button class="btn btn-primary btn-full" id="btn-continue">Continuer vers le questionnaire</button>
+    <p id="global-status" style="margin-top:0.8rem; font-size:0.85rem; color:var(--encre-soft);"></p>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/brand.js"></script>
+<script src="js/app.js"></script>
+<script>
+  const SHARPNESS_THRESHOLD = 15;
+  const MAX_WALLS = 8;
+  const MAX_FILE_SIZE = 8 * 1024 * 1024; // avant compression
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+  const existingDossier = DossierState.get();
+  const wallsContainer = document.getElementById('walls-container');
+  let wallCounter = 0;
+
+  // Pré-remplissage mesure de référence si on revient corriger
+  if (existingDossier.reference) {
+    document.getElementById('ref-libelle').value = existingDossier.reference.libelle || '';
+    document.getElementById('ref-valeur').value = existingDossier.reference.valeur_cm || '';
+  }
+
+  function createWallCard(existing) {
+    wallCounter++;
+    const murId = `mur-${wallCounter}`;
+    const card = document.createElement('div');
+    card.className = 'wall-card';
+    card.dataset.murId = murId;
+    card.innerHTML = `
+      <div class="head">
+        <h4>Mur ${wallCounter}</h4>
+        <span class="edit-link" style="cursor:pointer; font-size:0.78rem; color:var(--terre);" data-action="remove">Retirer</span>
+      </div>
+      <div class="wall-photo-preview"><span style="font-size:0.8rem; color:var(--encre-soft);">Aucune photo</span></div>
+      <input type="file" accept="image/*" capture="environment" style="display:none;" class="wall-input">
+      <button type="button" class="btn btn-outline btn-full wall-capture-btn">Prendre une photo</button>
+      <p class="sharpness-warning" style="display:none;"></p>
+      <div class="annotation-row">
+        <div class="chip" data-value="conserver">Conserver</div>
+        <div class="chip" data-value="modifier">À modifier</div>
+        <div class="chip" data-value="supprimer">À supprimer</div>
+        <div class="chip" data-value="probleme">Zone à problème</div>
+      </div>
+      <p class="upload-status"></p>
+    `;
+    wallsContainer.appendChild(card);
+    wireWallCard(card, murId, existing);
+    return card;
+  }
+
+  function wireWallCard(card, murId, existing) {
+    const input = card.querySelector('.wall-input');
+    const captureBtn = card.querySelector('.wall-capture-btn');
+    const preview = card.querySelector('.wall-photo-preview');
+    const warning = card.querySelector('.sharpness-warning');
+    const status = card.querySelector('.upload-status');
+    const chips = card.querySelectorAll('.annotation-row .chip');
+
+    // pendingFile : dernier fichier compressé prêt à (re)envoyer, utilisé par le bouton
+    // Réessayer sans repasser par le sélecteur de fichier.
+    let pendingFile = null;
+
+    function setState(state) {
+      card.dataset.uploadState = state;
+      updateContinueState();
+    }
+
+    function renderRetryButton(show) {
+      let btn = card.querySelector('.wall-retry-btn');
+      if (show) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'wall-retry-btn';
+          btn.textContent = 'Réessayer';
+          btn.style.cssText = 'margin-top:0.4rem; font-size:0.78rem; color:var(--terre); background:none; border:1px solid var(--terre); border-radius:3px; padding:0.35rem 0.7rem; cursor:pointer;';
+          btn.addEventListener('click', () => { if (pendingFile) attemptUpload(pendingFile); });
+          status.insertAdjacentElement('afterend', btn);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    }
+
+    async function attemptUpload(compressed) {
+      pendingFile = compressed;
+      setState('uploading');
+      status.textContent = 'Envoi en cours…';
+      renderRetryButton(false);
+      try {
+        const path = await uploadFileToStorage(compressed, 'photo');
+        card.dataset.storagePath = path;
+        status.textContent = 'Photo envoyée.';
+        setState('uploaded');
+        pendingFile = null;
+      } catch (err) {
+        // Message réel affiché (au lieu du texte générique précédent) pour permettre
+        // un vrai diagnostic si le problème se reproduit.
+        status.textContent = `Échec de l'envoi : ${err.message || 'erreur inconnue'}.`;
+        card.dataset.storagePath = '';
+        setState('failed');
+        renderRetryButton(true);
+      }
+    }
+
+    captureBtn.addEventListener('click', () => input.click());
+
+    card.querySelector('[data-action="remove"]').addEventListener('click', () => {
+      card.remove();
+      updateContinueState();
+    });
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        card.dataset.annotation = chip.dataset.value;
+      });
+    });
+
+    if (existing) {
+      preview.innerHTML = `<span style="font-size:0.78rem; color:var(--encre-soft); padding:0 1rem; text-align:center;">Photo déjà envoyée — reprendre une photo la remplacera</span>`;
+      status.textContent = 'Déjà envoyée.';
+      card.dataset.storagePath = existing.storage_path;
+      card.dataset.uploadState = 'uploaded';
+      const chip = [...chips].find(c => c.dataset.value === existing.statut_annotation);
+      if (chip) { chip.classList.add('selected'); card.dataset.annotation = existing.statut_annotation; }
+    } else {
+      card.dataset.uploadState = 'local';
+    }
+
+    input.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        status.textContent = 'Format non supporté — utilisez JPEG, PNG ou WebP.';
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        status.textContent = 'Fichier trop volumineux (8 Mo max avant compression).';
+        return;
+      }
+
+      status.textContent = 'Compression en cours…';
+      let compressed;
+      try {
+        compressed = await compressImage(file);
+      } catch (err) {
+        status.textContent = 'Impossible de traiter cette image, réessayez.';
+        return;
+      }
+
+      const img = new Image();
+      const localUrl = URL.createObjectURL(compressed);
+      img.onload = async () => {
+        preview.innerHTML = '';
+        preview.appendChild(img);
+        img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'cover';
+
+        const sharpness = estimateSharpness(img);
+        const nettete_ok = sharpness >= SHARPNESS_THRESHOLD;
+        if (!nettete_ok) {
+          warning.style.display = 'block';
+          warning.textContent = 'Cette photo semble floue — vous pouvez la reprendre pour un meilleur résultat.';
+        } else {
+          warning.style.display = 'none';
+        }
+        card.dataset.nettete = nettete_ok;
+
+        await attemptUpload(compressed);
+      };
+      img.src = localUrl;
+    });
+  }
+
+  // Bloque "Continuer" tant qu'une photo est en cours d'envoi ou en échec, avec un
+  // message explicite (voir evaluatePhotosGate dans js/app.js, testée unitairement).
+  function updateContinueState() {
+    const states = [...wallsContainer.querySelectorAll('.wall-card')].map(c => c.dataset.uploadState || 'local');
+    const gate = evaluatePhotosGate(states);
+    const btn = document.getElementById('btn-continue');
+    const globalStatus = document.getElementById('global-status');
+    btn.disabled = gate.disabled;
+    btn.style.opacity = gate.disabled ? '0.5' : '1';
+    btn.style.cursor = gate.disabled ? 'not-allowed' : 'pointer';
+    globalStatus.textContent = gate.reason;
+  }
+
+  document.getElementById('add-wall').addEventListener('click', () => {
+    if (wallsContainer.children.length >= MAX_WALLS) {
+      document.getElementById('global-status').textContent = `Maximum ${MAX_WALLS} murs pour ce parcours.`;
+      return;
+    }
+    createWallCard();
+    updateContinueState();
+  });
+
+  // Initialisation : reprise des murs existants ou 4 murs par défaut
+  if (existingDossier.photos && existingDossier.photos.length > 0) {
+    existingDossier.photos.forEach(p => createWallCard(p));
+  } else {
+    for (let i = 0; i < 4; i++) createWallCard();
+  }
+  updateContinueState();
+
+  // Mesures manuelles
+  const mesuresList = document.getElementById('mesures-list');
+  function mesureRow(libelle = '', valeur = '') {
+    const row = document.createElement('div');
+    row.className = 'mesure-row';
+    row.innerHTML = `
+      <div><label class="field-label">Élément mesuré</label><input type="text" class="m-libelle" value="${escapeHtml(libelle)}" placeholder="ex: Largeur porte"></div>
+      <div><label class="field-label">cm</label><input type="number" class="m-valeur" value="${escapeHtml(valeur)}"></div>
+      <button type="button" class="remove-mesure">✕</button>
+    `;
+    row.querySelector('.remove-mesure').addEventListener('click', () => row.remove());
+    return row;
+  }
+  if (existingDossier.mesures && existingDossier.mesures.length > 0) {
+    existingDossier.mesures.forEach(m => mesuresList.appendChild(mesureRow(m.libelle, m.valeur_cm)));
+  } else {
+    mesuresList.appendChild(mesureRow('Longueur'));
+    mesuresList.appendChild(mesureRow('Largeur'));
+    mesuresList.appendChild(mesureRow('Hauteur sous plafond'));
+  }
+  document.getElementById('add-mesure').addEventListener('click', () => mesuresList.appendChild(mesureRow()));
+
+  // Continuer
+  document.getElementById('btn-continue').addEventListener('click', () => {
+    const globalStatus = document.getElementById('global-status');
+
+    const refLibelle = document.getElementById('ref-libelle').value.trim();
+    const refValeur = document.getElementById('ref-valeur').value;
+    if (!refLibelle || !refValeur) {
+      globalStatus.textContent = 'La mesure de référence est obligatoire pour continuer.';
+      return;
+    }
+
+    const photos = [...wallsContainer.querySelectorAll('.wall-card')]
+      .filter(card => card.dataset.storagePath)
+      .map(card => ({
+        storage_path: card.dataset.storagePath,
+        legende: card.querySelector('h4').textContent,
+        mur_id: card.dataset.murId,
+        statut_annotation: card.dataset.annotation || 'a_verifier',
+        nettete_ok: card.dataset.nettete === 'true'
+      }));
+
+    const mesures = [...mesuresList.querySelectorAll('.mesure-row')].map(row => ({
+      libelle: row.querySelector('.m-libelle').value,
+      valeur_cm: row.querySelector('.m-valeur').value
+    })).filter(m => m.libelle && m.valeur_cm);
+
+    DossierState.save({
+      photos,
+      mesures,
+      reference: { libelle: refLibelle, valeur_cm: refValeur },
+      source_scan: 'manuel',
+      scan_provider: 'manuel'
+    });
+    window.location.href = 'questionnaire.html';
+  });
+</script>
+
+</body>
+</html>
