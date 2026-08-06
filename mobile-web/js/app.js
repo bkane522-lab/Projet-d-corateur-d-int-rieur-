@@ -81,7 +81,7 @@ async function uploadFileToStorage(file, kind) {
   });
   const client = await getSupabaseClient();
   const { error } = await client.storage.from('dossiers-media').uploadToSignedUrl(path, token, file);
-  if (error) throw error;
+  if (error) throw new Error(error.message || "Échec de l'envoi vers le stockage.");
   return path;
 }
 
@@ -231,9 +231,24 @@ async function apiPatch(path, body, options = {}) {
   return data;
 }
 
+/**
+ * Détermine si le bouton "Continuer" doit être bloqué selon l'état des photos.
+ * states : tableau de 'local' | 'uploading' | 'uploaded' | 'failed' (une valeur par mur).
+ * Pure et sans dépendance au DOM : testable directement (voir tests/photos-gate.test.js).
+ */
+function evaluatePhotosGate(states) {
+  if (states.some((s) => s === 'uploading')) {
+    return { disabled: true, reason: 'Envoi des photos en cours…' };
+  }
+  if (states.some((s) => s === 'failed')) {
+    return { disabled: true, reason: "Certaines photos n'ont pas pu être envoyées — réessayez ou retirez-les avant de continuer." };
+  }
+  return { disabled: false, reason: '' };
+}
+
 // Export CommonJS conditionnel : n'existe pas dans le navigateur (pas d'objet `module`),
 // utilisé uniquement par les tests Node (voir tests/timezone.test.js) pour vérifier les
 // fonctions pures sans dupliquer leur logique.
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { parisLocalToUTCISOString, formatParisDate, escapeHtml, DossierState, getSessionId, generateUUIDv4 };
+  module.exports = { parisLocalToUTCISOString, formatParisDate, escapeHtml, DossierState, getSessionId, generateUUIDv4, evaluatePhotosGate };
 }
